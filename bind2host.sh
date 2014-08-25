@@ -1,7 +1,7 @@
 #!/bin/bash
-#DB_FILES=(samples/db.local)
 DB_FILES=(samples/db.*)
-DB_FILES=(samples/db.cnames)
+#DB_FILES=(samples/db.cnames)
+
 OPTION_CNAME_RESOLVE=1
 OPTION_ECHO_BIND_LINE=1
 
