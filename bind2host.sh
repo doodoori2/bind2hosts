@@ -1,10 +1,17 @@
 #!/bin/bash
-DB_FILES=(samples/db.*)
-#DB_FILES=(samples/db.cnames)
-
+SCRIPT_NAME=$(basename $0)
 OPTION_CNAME_RESOLVE=1
 OPTION_ECHO_BIND_LINE=1
 
+function usage()
+{
+	echo -e "Usage:\t${SCRIPT_NAME} [FILE]..."
+	echo -e "\t${SCRIPT_NAME} convert bind9 db file to hosts file\n"
+	echo -e "Examples: "
+	echo -e "\t${SCRIPT_NAME} db.local"
+	echo -e "\t${SCRIPT_NAME} db.*"
+	exit
+}
 
 
 function read_db_file()
@@ -20,18 +27,20 @@ function read_db_file()
 function dig_query()
 {
 	local DOMAIN=$1
-	local DIG_RESULT=(`dig ${DOMAIN} | sed 's/[;\*].*//' | grep -w "A"`)
+	local DIG_RESULT=(`dig ${DOMAIN} | sed 's/[;\*].*//' | grep -e "[[:space:]]A[[:space:]]"`)
 	echo "${DIG_RESULT[4]}"
 }
 
-
 function echo_line()
 {
+	IP=$1
+	FULL_DOMAIN=$2
+	COMMENT=$3
 	if [[ "${OPTION_ECHO_BIND_LINE}" ]]
 	then
-		echo "# ${1}"
+		echo -e "${IP_ADDR} ${FULL_DOMAIN}\t\t#${COMMENT}" | tr '[:upper:]' '[:lower:]'
 	else
-		echo -e "\n"
+		echo -e "${IP_ADDR} ${FULL_DOMAIN}" | tr '[:upper:]' '[:lower:]'
 	fi
 }
 
@@ -42,8 +51,7 @@ function process_a_field()
 	local SUB_DOMAIN=${PARAM[0]}
 	local IP_ADDR=${PARAM[3]}
 	HOSTS_CACHE["${SUB_DOMAIN}"]="${IP_ADDR}"
-	echo -ne "${IP_ADDR} ${SUB_DOMAIN}.${DOMAIN}	\t" | tr '[:upper:]' '[:lower:]'
-	echo_line "${LINE}"
+	echo_line $IP_ADDR "${SUB_DOMAIN}.${DOMAIN}" "${LINE}"
 }
 
 function process_cname_field()
@@ -55,17 +63,15 @@ function process_cname_field()
 	local IP_ADDR=${HOSTS_CACHE["${CNAME_DOMAIN}"]}
 	if [ "${IP_ADDR}" ]
 	then
-		echo -ne "${IP_ADDR} ${SUB_DOMAIN}.${DOMAIN}	\t" | tr '[:upper:]' '[:lower:]'
+		echo_line $IP_ADDR "${SUB_DOMAIN}.${DOMAIN}" "${LINE}"
 	else # not internal CNAMEs
 		if [[ "${OPTION_CNAME_RESOLVE}" ]]
 		then
 			IP_ADDR=$(dig_query ${CNAME_DOMAIN})
 			HOSTS_CACHE[${CNAME_DOMAIN}]="${IP_ADDR}"
-			echo -ne "${IP_ADDR} ${SUB_DOMAIN}.${DOMAIN}	\t" | tr '[:upper:]' '[:lower:]'
+			echo_line $IP_ADDR "${SUB_DOMAIN}.${DOMAIN}" "${LINE}"
 		fi
 	fi
-	echo_line "${LINE}"
-
 }
 function process_bind9_db_file()
 {
@@ -76,29 +82,34 @@ function process_bind9_db_file()
 		exit
 	fi
 	local DB_FILE_CONTENT=$(read_db_file ${DB_FILE})
-	local SOA_FIELD=(`echo "${DB_FILE_CONTENT}" | grep -w SOA `)
+	local SOA_FIELD=(`echo "${DB_FILE_CONTENT}" | grep -e "[[:space:]]SOA[[:space:]]" `)
 	local DOMAIN=${SOA_FIELD[3]::-1}
 
 	echo "###### bind2hosts.sh ${DB_FILE} ${DOMAIN} "
 	while read LINE
 	do
 		process_a_field "$LINE"
-	done < <(echo "${DB_FILE_CONTENT}" | grep -w "A")
+	done < <(echo "${DB_FILE_CONTENT}" | grep -e "[[:space:]]A[[:space:]]")
 
 	while read LINE
 	do
 		process_cname_field "$LINE"
-	done < <(echo "${DB_FILE_CONTENT}" | grep -w "CNAME")
+	done < <(echo "${DB_FILE_CONTENT}" | grep -e "[[:space:]]CNAME[[:space:]]")
 	echo -e "###### bind2hosts.sh ${DB_FILE} ${DOMAIN} \n"
 }
 
 function main()
 {
-	DB_FILES=$1
-	for DB_FILE in ${DB_FILES[@]}
+	for DB_FILE in $@
 	do
 		process_bind9_db_file ${DB_FILE}
 	done
 }
 
-main "$DB_FILES"
+if [ "$#" -eq 0 ]
+then
+	usage
+else
+	main $@
+fi
+
