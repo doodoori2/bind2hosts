@@ -15,7 +15,7 @@ Examples:
 
 #Example
 
-## db.local
+## Input: db.local
 ```bash
 $ cat samples/db.local
 ;
@@ -39,7 +39,7 @@ $ ./bind2host.sh samples/db.local
 ###### bind2hosts.sh samples/db.local LOCALHOST
 ```
 
-## db.cnames
+## Output: db.cnames
 ```bash
 $ cat samples/db.cnames
 ;
