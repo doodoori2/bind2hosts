@@ -13,9 +13,10 @@ Examples:
 				bind2host.sh db.*
 ```
 
-#Example
+#Examples
 
-## Input: db.local
+## Examples 01: A records
+### Input: db.local
 ```bash
 $ cat samples/db.local
 ;
@@ -32,14 +33,18 @@ $TTL  604800
 @ IN  NS  localhost.
 @ IN  A 127.0.0.1
 @ IN  AAAA  ::1
+```
 
+### Output
+```
 $ ./bind2host.sh samples/db.local
 ###### bind2hosts.sh samples/db.local LOCALHOST
 127.0.0.1 @.localhost           # @ IN  A 127.0.0.1
 ###### bind2hosts.sh samples/db.local LOCALHOST
 ```
 
-## Output: db.cnames
+## Examples 02: CNAME records
+### Input: db.cnames
 ```bash
 $ cat samples/db.cnames
 ;
@@ -71,7 +76,10 @@ ROOT_NAMESERVER_A IN CNAME A.ROOT-SERVERS.NET.
 ROOT_NAMESERVER_B IN CNAME B.ROOT-SERVERS.NET.
 ROOT_NAMESERVER_C IN CNAME C.ROOT-SERVERS.NET.
 ROOT_NAMESERVER_D IN CNAME D.ROOT-SERVERS.NET.
+```
 
+### Output
+```
 $ ./bind2host.sh samples/db.cnames
 ###### bind2hosts.sh samples/db.cnames LOCALHOST
 127.0.0.1 @.localhost           # @ IN  A 127.0.0.1
